@@ -93,7 +93,7 @@ python --input_video INPUT_VIDEO \
        --device DEVICE
 ```
 
-## Sample results
+## Results of Qualitative Evaluation
 [Google Drive](https://drive.google.com/drive/folders/1kWhDbNs-NyEJURfZ0QLDXCmkfYSgSri0?usp=sharing)
 
 # Citation
