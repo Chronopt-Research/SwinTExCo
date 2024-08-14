@@ -94,7 +94,7 @@ python --input_video INPUT_VIDEO \
 ```
 
 ## Results of Qualitative Evaluation
-[Google Drive](https://1drv.ms/f/s!Au00COvcS5dxgpYWWmxlQGZjJmvQGQ?e=FD1hse)
+[OneDrive](https://1drv.ms/f/s!Au00COvcS5dxgpYWWmxlQGZjJmvQGQ?e=FD1hse)
 
 # Citation
 ```
