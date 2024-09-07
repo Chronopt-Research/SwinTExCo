@@ -433,5 +433,177 @@ class WarpNet(nn.Module):
         y = y.view(batch_size, channel, feature_height, feature_width)  # 2*3*44*44
         y = self.upsampling(y)
         similarity_map = self.upsampling(similarity_map)
+        # print(f"similarity_map max: {torch.amax(similarity_map)}")
+        # print(f"similarity_map min: {torch.amin(similarity_map)}")
 
         return y, similarity_map
+    
+
+class AblationWarpNet(nn.Module):
+    """input is Al, Bl, channel = 1, range~[0,255]"""
+
+    def __init__(self, feature_channel=128):
+        super(AblationWarpNet, self).__init__()
+        self.feature_channel = feature_channel
+        self.in_channels = self.feature_channel * 4
+        self.inter_channels = 256
+        # 44*44
+        self.layer2_1 = nn.Sequential(
+            nn.ReflectionPad2d(1),
+            # nn.Conv2d(128, 128, kernel_size=3, padding=0, stride=1),
+            # nn.Conv2d(96, 128, kernel_size=3, padding=20, stride=1),
+            nn.Conv2d(96, 128, kernel_size=3, padding=0, stride=1),
+            nn.InstanceNorm2d(128),
+            nn.PReLU(),
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(128, self.feature_channel, kernel_size=3, padding=0, stride=2),
+            nn.InstanceNorm2d(self.feature_channel),
+            nn.PReLU(),
+            nn.Dropout(0.2),
+        )
+        self.layer3_1 = nn.Sequential(
+            nn.ReflectionPad2d(1),
+            # nn.Conv2d(256, 128, kernel_size=3, padding=0, stride=1),
+            # nn.Conv2d(192, 128, kernel_size=3, padding=10, stride=1),
+            nn.Conv2d(192, 128, kernel_size=3, padding=0, stride=1),
+            nn.InstanceNorm2d(128),
+            nn.PReLU(),
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(128, self.feature_channel, kernel_size=3, padding=0, stride=1),
+            nn.InstanceNorm2d(self.feature_channel),
+            nn.PReLU(),
+            nn.Dropout(0.2),
+        )
+
+        # 22*22->44*44
+        self.layer4_1 = nn.Sequential(
+            nn.ReflectionPad2d(1),
+            # nn.Conv2d(512, 256, kernel_size=3, padding=0, stride=1),
+            # nn.Conv2d(384, 256, kernel_size=3, padding=5, stride=1),
+            nn.Conv2d(384, 256, kernel_size=3, padding=0, stride=1),
+            nn.InstanceNorm2d(256),
+            nn.PReLU(),
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(256, self.feature_channel, kernel_size=3, padding=0, stride=1),
+            nn.InstanceNorm2d(self.feature_channel),
+            nn.PReLU(),
+            nn.Upsample(scale_factor=2),
+            nn.Dropout(0.2),
+        )
+
+        # 11*11->44*44
+        self.layer5_1 = nn.Sequential(
+            nn.ReflectionPad2d(1),
+            # nn.Conv2d(1024, 256, kernel_size=3, padding=0, stride=1),
+            # nn.Conv2d(768, 256, kernel_size=2, padding=2, stride=1),
+            nn.Conv2d(768, 256, kernel_size=3, padding=0, stride=1),
+            nn.InstanceNorm2d(256),
+            nn.PReLU(),
+            nn.Upsample(scale_factor=2),
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(256, self.feature_channel, kernel_size=3, padding=0, stride=1),
+            nn.InstanceNorm2d(self.feature_channel),
+            nn.PReLU(),
+            nn.Upsample(scale_factor=2),
+            nn.Dropout(0.2),
+        )
+
+        self.layer = nn.Sequential(
+            ResidualBlock(self.feature_channel * 4, self.feature_channel * 4, kernel_size=3, padding=1, stride=1),
+            ResidualBlock(self.feature_channel * 4, self.feature_channel * 4, kernel_size=3, padding=1, stride=1),
+            ResidualBlock(self.feature_channel * 4, self.feature_channel * 4, kernel_size=3, padding=1, stride=1),
+        )
+
+        self.theta = nn.Conv2d(
+            in_channels=self.in_channels, out_channels=self.inter_channels, kernel_size=1, stride=1, padding=0
+        )
+        self.phi = nn.Conv2d(in_channels=self.in_channels, out_channels=self.inter_channels, kernel_size=1, stride=1, padding=0)
+
+        self.upsampling = nn.Upsample(scale_factor=4)
+        self.ablation_pooling = nn.AvgPool1d(kernel_size=2)
+
+    def forward(
+        self,
+        B_lab_map,
+        A_relu2_1,
+        A_relu3_1,
+        A_relu4_1,
+        A_relu5_1,
+        B_relu2_1,
+        B_relu3_1,
+        B_relu4_1,
+        B_relu5_1,
+        temperature=0.001 * 5,
+        detach_flag=False,
+        WTA_scale_weight=1,
+    ):
+        batch_size = B_lab_map.shape[0]
+        channel = B_lab_map.shape[1]
+        image_height = B_lab_map.shape[2]
+        image_width = B_lab_map.shape[3]
+        feature_height = int(image_height / 4)
+        feature_width = int(image_width / 4)
+
+        # scale feature size to 44*44
+        A_feature2_1 = self.layer2_1(A_relu2_1)
+        B_feature2_1 = self.layer2_1(B_relu2_1)
+        A_feature3_1 = self.layer3_1(A_relu3_1)
+        B_feature3_1 = self.layer3_1(B_relu3_1)
+        A_feature4_1 = self.layer4_1(A_relu4_1)
+        B_feature4_1 = self.layer4_1(B_relu4_1)
+        A_feature5_1 = self.layer5_1(A_relu5_1)
+        B_feature5_1 = self.layer5_1(B_relu5_1)
+
+        # concatenate features
+        if A_feature5_1.shape[2] != A_feature2_1.shape[2] or A_feature5_1.shape[3] != A_feature2_1.shape[3]:
+            A_feature5_1 = F.pad(A_feature5_1, (0, 0, 1, 1), "replicate")
+            B_feature5_1 = F.pad(B_feature5_1, (0, 0, 1, 1), "replicate")
+        # print("===========")
+    
+        A_features = self.layer(torch.cat((A_feature2_1, A_feature3_1, A_feature4_1, A_feature5_1), 1))
+        B_features = self.layer(torch.cat((B_feature2_1, B_feature3_1, B_feature4_1, B_feature5_1), 1))
+        feature_height = A_features.shape[2]
+        feature_width = A_features.shape[3]
+        # print(f"A_features: {A_features.shape}")
+        # print(f"B_features: {B_features.shape}") 
+        A_features = A_features.view(batch_size, -1 , feature_height * feature_width)
+        B_features = B_features.view(batch_size, -1 , feature_height * feature_width)
+        A_features = A_features.permute(0, 2, 1)
+        B_features = B_features.permute(0, 2, 1)
+        A_features = self.ablation_pooling(A_features)
+        B_features = self.ablation_pooling(B_features)
+        A_features_norm = torch.norm(A_features, 2, 2, keepdim=True) + sys.float_info.epsilon
+        A_features = torch.div(A_features, A_features_norm)
+        B_features_norm = torch.norm(B_features, 2, 2, keepdim=True) + sys.float_info.epsilon
+        B_features = torch.div(B_features, B_features_norm)
+        # print(f"A_features after: {A_features.shape}")
+        # print(f"B_features after: {B_features.shape}")
+        f = torch.matmul(A_features, B_features.permute(0, 2, 1))
+        if detach_flag:
+            f = f.detach()
+
+        f_similarity = f.unsqueeze_(dim=1)
+        similarity_map = torch.max(f_similarity, -1, keepdim=True)[0]
+        similarity_map = similarity_map.view(batch_size, 1, feature_height, feature_width)
+
+        # f can be negative
+        f_WTA = f if WTA_scale_weight == 1 else WTA_scale.apply(f, WTA_scale_weight)
+        f_WTA = f_WTA / temperature
+        f_div_C = F.softmax(f_WTA.squeeze_(), dim=-1)  # 2*1936*1936;
+
+        # downsample the reference color
+        B_lab = F.avg_pool2d(B_lab_map, 4)
+        B_lab = B_lab.view(batch_size, channel, -1)
+        B_lab = B_lab.permute(0, 2, 1)  # 2*1936*channel
+
+        # multiply the corr map with color
+        y = torch.matmul(f_div_C, B_lab)  # 2*1936*channel
+        y = y.permute(0, 2, 1).contiguous()
+        y = y.view(batch_size, channel, feature_height, feature_width)  # 2*3*44*44
+        y = self.upsampling(y)
+        similarity_map = self.upsampling(similarity_map)
+        
+        # print(f"y: {y.shape}")
+        # print(f"similarity_map: {similarity_map.shape}")
+        # print("===========")
+        return y, similarity_map    

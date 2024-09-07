@@ -11,7 +11,7 @@ from utils.convert_folder_to_video import convert_frames_to_video
 
 from src.models.CNN.ColorVidNet import ColorVidNet
 from src.models.vit.embed import SwinModel
-from src.models.CNN.NonlocalNet import WarpNet
+from src.models.CNN.NonlocalNet import AblationWarpNet as WarpNet
 from src.models.CNN.FrameColor import frame_colorization
 from src.utils import (
     RGB2Lab,

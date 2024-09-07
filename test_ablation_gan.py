@@ -11,7 +11,7 @@ from utils.convert_folder_to_video import convert_frames_to_video
 
 from src.models.CNN.ColorVidNet import ColorVidNet
 from src.models.vit.embed import SwinModel
-from src.models.CNN.NonlocalNet import WarpNet
+from src.models.CNN.NonlocalNet import AblationWarpNet as WarpNet
 from src.models.CNN.FrameColor import frame_colorization
 from src.utils import (
     RGB2Lab,
@@ -78,7 +78,7 @@ def main(args):
         
 
         with torch.no_grad():
-            I_current_ab_predict, _ = frame_colorization(
+            I_current_ab_predict, lab_similar = frame_colorization(
                 IA_l,
                 I_reference_lab,
                 I_last_lab_predict,
@@ -90,9 +90,11 @@ def main(args):
                 temperature=1e-10,
                 joint_training=False
             )
-            I_last_lab_predict = torch.cat((IA_l, I_current_ab_predict), dim=1)
+            ablation_current_ab_predict = lab_similar[:, 1:3, :, :]
+            I_last_lab_predict = torch.cat((IA_l, ablation_current_ab_predict), dim=1)
+
             
-        IA_predict_rgb = upscale_image(large_IA_l, I_current_ab_predict)
+        IA_predict_rgb = upscale_image(large_IA_l, ablation_current_ab_predict)
         IA_predict_rgb = (IA_predict_rgb.squeeze(0).cpu().numpy() * 255.)
         IA_predict_rgb = np.clip(IA_predict_rgb, 0, 255).astype(np.uint8)
         save_frames(IA_predict_rgb, args.output_video, frame_name)
