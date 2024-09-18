@@ -131,9 +131,9 @@ if __name__ == "__main__":
     colornet.eval()
 
     # Load weights
-    embed_net_params = load_params(os.path.join(args.weight_path, "embed_net.pth"))
-    nonlocal_net_params = load_params(os.path.join(args.weight_path, "nonlocal_net.pth"))
-    colornet_params = load_params(os.path.join(args.weight_path, "colornet.pth"))
+    embed_net_params = load_params(os.path.join(args.weight_path, "embed_net.pth"), device=device)
+    nonlocal_net_params = load_params(os.path.join(args.weight_path, "nonlocal_net.pth"), device=device)
+    colornet_params = load_params(os.path.join(args.weight_path, "colornet.pth"), device=device)
 
     embed_net.load_state_dict(embed_net_params, strict=True)
     nonlocal_net.load_state_dict(nonlocal_net_params, strict=True)
