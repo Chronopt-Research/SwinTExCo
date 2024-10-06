@@ -1,6 +1,6 @@
 <h1 align="center">SwinTExCo: Exemplar-based Video Colorization using Swin Transformer</h1>
 
-<p align="center">Paper (Update soon) | <a href="https://huggingface.co/spaces/chronopt-research/SwinTExCo">🤗 Demo (CPU)</a> | <a href="https://huggingface.co/spaces/chronopt-research/SwinTExCo">🤗 Demo (GPU)</a></p>
+<p align="center"><a href="https://doi.org/10.1016/j.eswa.2024.125437">📄 Paper</a> | <a href="https://huggingface.co/spaces/chronopt-research/SwinTExCo">🤗 Demo (CPU)</a> | <a href="https://huggingface.co/spaces/chronopt-research/SwinTExCo">🤗 Demo (GPU)</a></p>
 
 <p align="center">
 This is the official implementation of paper: <b>"SwinTExCo: Exemplar-based Video Colorization using Swin Transformer"</b></p>
@@ -100,4 +100,17 @@ python --input_video INPUT_VIDEO \
 
 # Citation
 ```
+@article{TRAN2025125437,
+title = {SwinTExCo: Exemplar-based video colorization using Swin Transformer},
+journal = {Expert Systems with Applications},
+volume = {260},
+pages = {125437},
+year = {2025},
+issn = {0957-4174},
+doi = {https://doi.org/10.1016/j.eswa.2024.125437},
+url = {https://www.sciencedirect.com/science/article/pii/S0957417424023042},
+author = {Duong Thanh Tran and Nguyen Doan Hieu Nguyen and Trung Thanh Pham and Phuong-Nam Tran and Thuy-Duong Thi Vu and Cuong Tuan Nguyen and Hanh Dang-Ngoc and Duc Ngoc Minh Dang},
+keywords = {Computer vision, Image colorization, Video colorization, Exemplar-based, Vision transformer, Swin transformer},
+abstract = {Video colorization represents a compelling domain within the field of Computer Vision. The traditional approach in this field relies on Convolutional Neural Networks (CNNs) to extract features from each video frame and employs a recurrent network to learn information between video frames. While demonstrating considerable success in colorization, most traditional CNNs suffer from a limited receptive field size, capturing local information within a fixed-sized window. Consequently, they struggle to directly grasp long-range dependencies or pixel relationships that span large image or video frame areas. To address this limitation, recent advancements in the field have leveraged Vision Transformer (ViT) and their variants to enhance performance. This article introduces Swin Transformer Exemplar-based Video Colorization (SwinTExCo), an end-to-end model for the video colorization process that incorporates the Swin Transformer architecture as the backbone. The experimental results demonstrate that our proposed method outperforms many other state-of-the-art methods in both quantitative and qualitative metrics. The achievements of this research have significant implications for the domain of documentary and history video restoration, contributing to the broader goal of preserving cultural heritage and facilitating a deeper understanding of historical events through enhanced audiovisual materials.}
+}
 ```
